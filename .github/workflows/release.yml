@@ -62,4 +62,4 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
-          skipUpdateJson: true # 添加这一行以跳过更新器 JSON 的生成
+          includeUpdaterJson: false  # 控制是否生成 updater.json
