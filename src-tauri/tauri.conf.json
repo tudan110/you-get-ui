@@ -62,5 +62,8 @@
       "scope": ["**"],
       "allow": ["read", "write"]
     }
+  },
+  "updater": {
+    "active": false
   }
 }
