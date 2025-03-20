@@ -25,8 +25,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["app", "dmg", "updater", "msi", "appimage", "deb"],
-    "identifier": "com.tudan.you-get-ui",
+    "targets": "all",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -36,13 +35,11 @@
     ],
     "resources": [],
     "externalBin": [],
-    "copyright": "© 2024",
+    "copyright": "© 2025",
     "category": "DeveloperTool",
     "shortDescription": "A GUI client for you-get",
     "longDescription": "A GUI client for you-get, making video downloading easier",
-    "deb": {
-      "depends": []
-    },
+    "linux": {},
     "macOS": {
       "frameworks": [],
       "minimumSystemVersion": "10.13",
