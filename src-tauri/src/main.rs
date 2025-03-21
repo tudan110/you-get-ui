@@ -78,6 +78,7 @@ async fn download_video(
     format: String,
     output_path: Option<String>,
     cookies_path: Option<String>,
+    no_caption: bool,
     state: State<'_, Arc<Mutex<DownloadState>>>,
     window: tauri::Window,
 ) -> Result<(), String> {
@@ -94,8 +95,9 @@ async fn download_video(
     // 检查是否是 B 站链接
     if url.contains("bilibili.com") {
         command.arg("--format").arg(format);
-        // 添加额外的 B 站特定参数
-        command.arg("--no-caption");  // 不下载字幕
+        if no_caption {
+            command.arg("--no-caption");  // 如果选择不下载字幕，添加此参数
+        }
     } else {
         // 对于其他网站使用通用格式
         command.arg("--format").arg(format);

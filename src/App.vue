@@ -16,6 +16,7 @@ const videoInfo = ref({
   formats: []
 });
 const loadingInfo = ref(false);
+const downloadCaptions = ref(false);
 
 // 格式化文件大小
 const formatSize = (size) => {
@@ -159,7 +160,8 @@ async function startDownload() {
       url: url.value,
       format: format.value,
       outputPath: downloadPath.value,
-      cookiesPath: cookiesPath.value
+      cookiesPath: cookiesPath.value,
+      noCaption: !downloadCaptions.value
     });
     status.value = "下载完成！";
   } catch (error) {
@@ -260,6 +262,13 @@ onUnmounted(() => {
           </button>
         </div>
         <small class="help-text">对于需要登录的视频（如 B 站高清视频），请选择 cookies 文件</small>
+      </div>
+
+      <div class="input-group">
+        <label>
+          <input type="checkbox" v-model="downloadCaptions" />
+          下载字幕/弹幕
+        </label>
       </div>
 
       <button 
