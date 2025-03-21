@@ -78,6 +78,8 @@ yarn tauri build
 
 ## 界面预览
 
+![image-20250321083556321](./README.assets/image-20250321083556321.png)
+
 ![image-20250320172245530](./README.assets/image-20250320172245530.png)
 
 ![image-20250320173308494](./README.assets/image-20250320173308494.png)
