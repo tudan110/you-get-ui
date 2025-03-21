@@ -197,6 +197,9 @@ onUnmounted(() => {
       <button @click="installYouGet" class="install-button">
         安装 You-get
       </button>
+
+      <p class="status">{{ status }}</p>
+
     </div>
 
     <div v-else class="download-form">
