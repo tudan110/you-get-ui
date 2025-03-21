@@ -84,7 +84,8 @@ async function installYouGet() {
     youGetInstalled.value = true;
     status.value = "You-get 安装成功！";
   } catch (error) {
-    status.value = `安装失败: ${error}`;
+    status.value = `安装失败: ${error}。请手动安装 You-get。`;
+    status.value += `\n官网链接: <a href="https://you-get.org/" target="_blank">https://you-get.org/</a>`;
   }
 }
 
@@ -194,11 +195,12 @@ onUnmounted(() => {
   <main class="container">
     <div v-if="!youGetInstalled" class="install-section">
       <p>You-get 未安装，请先安装</p>
+      <p>注意：You-get 依赖 ffmpeg，请确保已安装 ffmpeg。</p>
       <button @click="installYouGet" class="install-button">
         安装 You-get
       </button>
 
-      <p class="status">{{ status }}</p>
+      <p class="status" v-html="status"></p>
 
     </div>
 
