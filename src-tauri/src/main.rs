@@ -1,6 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::path::Path;
 use std::process::Command;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -36,26 +37,96 @@ struct DownloadProgress {
     message: String,
 }
 
+fn get_you_get_path() -> Result<String, String> {
+    let possible_paths = if cfg!(target_os = "windows") {
+        vec![
+            "C:\\Program Files\\you-get\\you-get.exe",
+            "C:\\Users\\%USERNAME%\\AppData\\Local\\Programs\\you-get\\you-get.exe",
+            "C:\\Users\\%USERNAME%\\AppData\\Roaming\\Python\\Scripts\\you-get.exe",
+        ]
+    } else {
+        vec![
+            "/usr/local/bin/you-get",       // Homebrew (Intel Mac)
+            "/opt/homebrew/bin/you-get",    // Homebrew (Apple Silicon Mac)
+            "~/.local/bin/you-get",         // pip install --user (Linux/macOS)
+            "~/.pyenv/shims/you-get",       // pyenv pip install --user (Linux/macOS)
+            "/usr/bin/you-get",             // 部分 Linux 发行版的默认位置
+            "/bin/you-get",                 // 备用路径
+        ]
+    };
+
+    for path in possible_paths {
+        let expanded_path = shellexpand::tilde(path).to_string();
+        if Path::new(&expanded_path).exists() {
+            return Ok(expanded_path);
+        }
+    }
+
+    return Err("未找到 you-get，请检查是否已安装".to_string())
+}
+
 #[command]
 async fn check_you_get_installed() -> Result<bool, String> {
-    let output = Command::new("you-get")
-        .arg("--version")
-        .output()
-        .map_err(|e| e.to_string())?;
+    let you_get_path_str = get_you_get_path()?;
 
-    Ok(output.status.success())
+    let output = Command::new(you_get_path_str) // 使用全路径
+        .arg("--version")
+        .output();
+
+    match output {
+        Ok(output) => Ok(output.status.success()),
+        Err(_) => Ok(false), // 如果执行失败，返回 false
+    }
 }
 
 #[command]
 async fn install_you_get() -> Result<(), String> {
-    let output = Command::new("pip")
-        .arg("install")
-        .arg("you-get")
-        .output()
-        .map_err(|e| e.to_string())?;
+    // 查找 pip 的安装路径
+    let pip_path = if cfg!(target_os = "windows") {
+        Command::new("where")
+            .arg("pip")
+            .output()
+            .map_err(|e| e.to_string())?
+    } else {
+        Command::new("which")
+            .arg("pip")
+            .output()
+            .map_err(|e| e.to_string())?
+    };
 
-    if !output.status.success() {
-        return Err("Failed to install you-get".to_string());
+    let pip_path_str = String::from_utf8_lossy(&pip_path.stdout).trim().to_string();
+    if pip_path_str.is_empty() {
+        // 如果没有找到 pip，检查是否安装了 Python
+        let python_path = if cfg!(target_os = "windows") {
+            Command::new("where")
+                .arg("python")
+                .output()
+                .map_err(|e| e.to_string())?
+        } else {
+            Command::new("which")
+                .arg("python")
+                .output()
+                .map_err(|e| e.to_string())?
+        };
+
+        let python_path_str = String::from_utf8_lossy(&python_path.stdout).trim().to_string();
+        if python_path_str.is_empty() {
+            return Err("未安装 Python，请手动安装 Python 后再安装 you-get".to_string());
+        } else {
+            return Err("未找到 pip，请确保 Python 已安装并且 pip 可用".to_string());
+        }
+    } else {
+        // 使用全路径执行 pip
+        let output = Command::new(pip_path_str) // 使用全路径
+            .arg("install")
+            .arg("you-get")
+            .output()
+            .map_err(|e| e.to_string())?;
+
+        if !output.status.success() {
+            let error_message = String::from_utf8_lossy(&output.stderr).to_string();
+            return Err(format!("Failed to install you-get: {}", error_message));
+        }
     }
 
     Ok(())
@@ -89,7 +160,9 @@ async fn download_video(
 
     download_state.is_downloading = true;
 
-    let mut command = Command::new("you-get");
+    let you_get_path_str = get_you_get_path()?;
+
+    let mut command = Command::new(you_get_path_str); // 使用全路径
     command.arg("--debug");
     
     // 检查是否是 B 站链接
@@ -189,7 +262,9 @@ fn get_format_quality(stream_info: &serde_json::Value) -> Option<String> {
 
 #[command]
 async fn get_video_info(url: String, cookies_path: Option<String>) -> Result<VideoInfo, String> {
-    let mut command = Command::new("you-get");
+    let you_get_path_str = get_you_get_path()?;
+
+    let mut command = Command::new(you_get_path_str); // 使用全路径
     command.arg("--json").arg(&url);
     
     // 如果提供了 cookies 文件路径，添加 --cookies 参数
