@@ -38,24 +38,19 @@ struct DownloadProgress {
 }
 
 fn get_you_get_path() -> Result<String, String> {
-    let possible_paths = if cfg!(target_os = "windows") {
-        vec![
-            "you-get",
-            "C:\\Program Files\\you-get\\you-get.exe",
-            "C:\\Users\\%USERNAME%\\AppData\\Local\\Programs\\you-get\\you-get.exe",
-            "C:\\Users\\%USERNAME%\\AppData\\Roaming\\Python\\Scripts\\you-get.exe",
-        ]
-    } else {
-        vec![
-            "you-get",
-            "/usr/local/bin/you-get",       // Homebrew (Intel Mac)
-            "/opt/homebrew/bin/you-get",    // Homebrew (Apple Silicon Mac)
-            "~/.local/bin/you-get",         // pip install --user (Linux/macOS)
-            "~/.pyenv/shims/you-get",       // pyenv pip install --user (Linux/macOS)
-            "/usr/bin/you-get",             // 部分 Linux 发行版的默认位置
-            "/bin/you-get",                 // 备用路径
-        ]
-    };
+    if cfg!(target_os = "windows") {
+        // 直接返回 "you-get"
+        return Ok("you-get".to_string());
+    }
+
+    let possible_paths = vec![
+        "/usr/local/bin/you-get",       // Homebrew (Intel Mac)
+        "/opt/homebrew/bin/you-get",    // Homebrew (Apple Silicon Mac)
+        "~/.local/bin/you-get",         // pip install --user (Linux/macOS)
+        "~/.pyenv/shims/you-get",       // pyenv pip install --user (Linux/macOS)
+        "/usr/bin/you-get",             // 部分 Linux 发行版的默认位置
+        "/bin/you-get",                 // 备用路径
+    ];
 
     for path in possible_paths {
         let expanded_path = shellexpand::tilde(path).to_string();
