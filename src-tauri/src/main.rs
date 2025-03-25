@@ -12,7 +12,7 @@ use serde;
 use serde_json;
 use dirs;
 use std::io::{BufRead, BufReader};
-use std::process::{Stdio};
+use std::process::Stdio;
 
 #[derive(Default)]
 struct DownloadState {
