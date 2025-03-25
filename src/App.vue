@@ -130,7 +130,7 @@ async function getVideoInfo() {
       status.value = "未找到可用的视频格式";
     }
   } catch (error) {
-    status.value = `获取视频信息失败: ${error}`;
+    status.value = `${error}`;
   } finally {
     loadingInfo.value = false;
   }
