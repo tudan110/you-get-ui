@@ -9,10 +9,10 @@ use tauri::command;
 use tauri::State;
 use tauri::Emitter;
 use serde;
-use serde_json;
 use dirs;
 use std::io::{BufRead, BufReader};
 use std::process::Stdio;
+use regex::Regex;
 
 #[derive(Default)]
 struct DownloadState {
@@ -232,37 +232,12 @@ async fn download_video(
     Ok(())
 }
 
-// 从 JSON 中获取格式的文件大小
-fn get_format_size(stream_info: &serde_json::Value) -> u64 {
-    if let Some(size) = stream_info["size"].as_u64() {
-        size
-    } else if let Some(files) = stream_info["files"].as_array() {
-        // 如果是多文件格式，计算所有文件的总大小
-        files.iter()
-            .filter_map(|file| file["size"].as_u64())
-            .sum()
-    } else {
-        0
-    }
-}
-
-// 从 JSON 中获取格式的质量信息
-fn get_format_quality(stream_info: &serde_json::Value) -> Option<String> {
-    if let Some(quality) = stream_info["quality"].as_str() {
-        Some(quality.to_string())
-    } else if let Some(height) = stream_info["height"].as_i64() {
-        Some(format!("{}P", height))
-    } else {
-        None
-    }
-}
-
 #[command]
 async fn get_video_info(url: String, cookies_path: Option<String>) -> Result<VideoInfo, String> {
     let you_get_path_str = get_you_get_path()?;
 
     let mut command = Command::new(you_get_path_str); // 使用全路径
-    command.arg("--json").arg(&url);
+    command.arg("--info").arg(&url);
     
     // 如果提供了 cookies 文件路径，添加 --cookies 参数
     if let Some(cookies) = cookies_path {
@@ -279,33 +254,99 @@ async fn get_video_info(url: String, cookies_path: Option<String>) -> Result<Vid
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-    
-    // 解析 JSON 输出
-    let info: serde_json::Value = serde_json::from_str(&stdout)
-        .map_err(|e| e.to_string())?;
 
-    let title = info["title"]
-        .as_str()
-        .unwrap_or("未知标题")
-        .to_string();
+    // 去除 ANSI 转义序列
+    let cleaned_output = remove_ansi_escape_sequences(&stdout);
 
+    // 解析 --info 输出
+    let title = parse_title(&cleaned_output).unwrap_or("未知标题".to_string());
+    let formats = parse_formats(&cleaned_output);
+
+    Ok(VideoInfo { title, formats })
+}
+
+// 去除 ANSI 转义序列
+fn remove_ansi_escape_sequences(input: &str) -> String {
+    let ansi_escape_pattern = Regex::new(r"\x1B\[[0-?]*[ -/]*[@-~]").unwrap();
+    ansi_escape_pattern.replace_all(input, "").to_string()
+}
+
+// 从 --info 输出中解析标题
+fn parse_title(output: &str) -> Option<String> {
+    // 假设标题在 "title:" 后面
+    let title_pattern = Regex::new(r"title:\s*(.+)").unwrap();
+    title_pattern.captures(output)
+        .and_then(|cap| cap.get(1))
+        .map(|m| m.as_str().trim().to_string())
+}
+
+// 从 --info 输出中解析格式信息
+fn parse_formats(output: &str) -> Vec<FormatInfo> {
     let mut formats = Vec::new();
-    if let Some(streams) = info["streams"].as_object() {
-        for (format, stream_info) in streams {
-            let size = get_format_size(stream_info);
-            let quality = get_format_quality(stream_info);
-            formats.push(FormatInfo {
-                name: format.clone(),
-                size,
-                quality,
+    let mut current_format: Option<FormatInfo> = None;
+
+    for line in output.lines() {
+        let line = line.trim();
+
+        // 跳过空行和注释行
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+
+        // 匹配格式名称
+        if let Some(name) = extract_field(line, r"- format:\s+(\S+)") {
+            if let Some(format) = current_format.take() {
+                formats.push(format);
+            }
+            current_format = Some(FormatInfo {
+                name,
+                size: 0,
+                quality: None,
             });
         }
+
+        // 匹配质量
+        if let Some(quality) = extract_field(line, r"quality:\s+(.+)") {
+            if let Some(ref mut format) = current_format {
+                format.quality = Some(quality);
+            }
+        }
+
+        // 匹配大小
+        if let Some(size_str) = extract_field(line, r"size:\s+([\d.]+\s+\w+)\s+\(([\d]+)\s+bytes\)") {
+            if let Some(ref mut format) = current_format {
+                format.size = parse_size(&size_str);
+            }
+        }
+    }
+
+    // 添加最后一个格式
+    if let Some(format) = current_format.take() {
+        formats.push(format);
     }
 
     // 按文件大小降序排序
     formats.sort_by(|a, b| b.size.cmp(&a.size));
+    formats
+}
 
-    Ok(VideoInfo { title, formats })
+// 提取字段值的辅助函数
+fn extract_field(line: &str, pattern: &str) -> Option<String> {
+    let re = Regex::new(pattern).unwrap();
+    re.captures(line)
+        .and_then(|cap| cap.get(1))
+        .map(|m| m.as_str().to_string())
+}
+
+// 将大小字符串（如 "11.4 MiB (11902362 bytes)"）转换为字节数
+fn parse_size(size_str: &str) -> u64 {
+    let size_pattern = Regex::new(r"\((\d+)\s+bytes\)").unwrap();
+    if let Some(caps) = size_pattern.captures(size_str) {
+        caps.get(1)
+            .map_or(0, |m| m.as_str().parse::<u64>().unwrap_or(0))
+    } else {
+        0
+    }
 }
 
 #[command]

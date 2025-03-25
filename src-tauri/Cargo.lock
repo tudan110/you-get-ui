@@ -5398,6 +5398,7 @@ name = "you-get-ui"
 version = "0.1.0"
 dependencies = [
  "dirs 5.0.1",
+ "regex",
  "serde",
  "serde_json",
  "shellexpand",
