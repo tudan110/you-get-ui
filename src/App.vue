@@ -48,12 +48,12 @@ const formatDisplayName = (format, quality) => {
       case '360': displayName = '360P'; break;
     }
   }
-  
+
   // 如果有质量信息，添加到显示名称中
   if (quality) {
     displayName = `${displayName} (${quality})`;
   }
-  
+
   return displayName;
 };
 
@@ -115,14 +115,14 @@ async function getVideoInfo() {
 
   loadingInfo.value = true;
   status.value = "正在获取视频信息...";
-  
+
   try {
-    const info = await invoke("get_video_info", { 
+    const info = await invoke("get_video_info", {
       url: url.value,
-      cookiesPath: cookiesPath.value 
+      cookiesPath: cookiesPath.value
     });
     videoInfo.value = info;
-    
+
     if (videoInfo.value.formats.length > 0) {
       format.value = videoInfo.value.formats[0].name;
       status.value = "视频信息获取成功！";
@@ -141,20 +141,20 @@ async function startDownload() {
     status.value = "请输入视频链接";
     return;
   }
-  
+
   if (!youGetInstalled.value) {
     status.value = "请先安装 you-get";
     return;
   }
-  
+
   if (!format.value) {
     status.value = "请先获取视频信息";
     return;
   }
-  
+
   downloading.value = true;
   status.value = "正在下载...";
-  
+
   try {
     await invoke("download_video", {
       url: url.value,
@@ -177,6 +177,20 @@ async function getDefaultDownloadDir() {
     downloadPath.value = defaultDir;
   } catch (error) {
     console.error('获取默认下载目录失败:', error);
+  }
+}
+
+async function selectDownloadDir() {
+  try {
+    const selected = await open({
+      directory: true,
+      multiple: false,
+    });
+    if (selected) {
+      downloadPath.value = selected;
+    }
+  } catch (error) {
+    status.value = `选择下载目录失败: ${error}`;
   }
 }
 
@@ -209,16 +223,8 @@ onUnmounted(() => {
     <div v-else class="download-form">
       <div class="input-group">
         <div class="url-input">
-          <input 
-            v-model="url" 
-            placeholder="请输入视频链接" 
-            :disabled="downloading"
-          />
-          <button 
-            @click="getVideoInfo" 
-            :disabled="downloading || loadingInfo"
-            class="info-button"
-          >
+          <input v-model="url" placeholder="请输入视频链接" :disabled="downloading" />
+          <button @click="getVideoInfo" :disabled="downloading || loadingInfo" class="info-button">
             {{ loadingInfo ? '获取中...' : '获取信息' }}
           </button>
         </div>
@@ -229,11 +235,13 @@ onUnmounted(() => {
       </div>
 
       <div class="input-group">
-        <input 
-          v-model="downloadPath" 
-          placeholder="下载路径（可选）" 
-          :disabled="downloading"
-        />
+        <div class="download-path-input">
+          <input v-model="downloadPath" placeholder="下载路径（可选）" :disabled="downloading" class="full-width-input" />
+          <button @click="selectDownloadDir" :disabled="downloading" class="select-button">
+            选择目录
+          </button>
+        </div>
+        <small class="help-text">选择下载目录</small>
       </div>
 
       <div v-if="videoInfo.formats.length > 0" class="input-group">
@@ -247,17 +255,9 @@ onUnmounted(() => {
 
       <div class="input-group">
         <div class="cookies-input">
-          <input 
-            v-model="cookiesPath" 
-            placeholder="Cookies 文件路径（可选）" 
-            :disabled="downloading"
-            readonly
-          />
-          <button 
-            @click="selectCookiesFile" 
-            :disabled="downloading"
-            class="select-button"
-          >
+          <input v-model="cookiesPath" placeholder="Cookies 文件路径（可选）" :disabled="downloading" readonly
+            class="full-width-input" />
+          <button @click="selectCookiesFile" :disabled="downloading" class="select-button">
             选择文件
           </button>
         </div>
@@ -271,11 +271,7 @@ onUnmounted(() => {
         </label>
       </div>
 
-      <button 
-        @click="startDownload" 
-        :disabled="downloading || !format"
-        class="download-button"
-      >
+      <button @click="startDownload" :disabled="downloading || !format" class="download-button">
         {{ downloading ? '下载中...' : '开始下载' }}
       </button>
 
@@ -333,15 +329,27 @@ onUnmounted(() => {
   width: 100%;
 }
 
-.url-input, .cookies-input {
+.url-input,
+.cookies-input,
+.download-path-input {
   display: flex;
   gap: 0.5rem;
   width: 100%;
 }
 
-.url-input input, .cookies-input input {
+.url-input input,
+.cookies-input input,
+.download-path-input input {
   flex: 1;
-  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.full-width-input {
+  flex: 1;
 }
 
 .info-button {
@@ -399,15 +407,6 @@ onUnmounted(() => {
   font-size: 0.875rem;
 }
 
-input, select {
-  /* width: 100%; */
-  padding: 0.8rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-  box-sizing: border-box;
-}
-
 .download-button {
   background-color: #4CAF50;
   color: white;
@@ -458,8 +457,13 @@ input, select {
 }
 
 @keyframes loading {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(200%); }
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(200%);
+  }
 }
 
 .progress-text {
@@ -469,6 +473,7 @@ input, select {
 }
 
 @media (prefers-color-scheme: dark) {
+
   .install-section,
   .video-info {
     background-color: #2f2f2f;
@@ -478,7 +483,8 @@ input, select {
     color: #f6f6f6;
   }
 
-  input, select {
+  input,
+  select {
     background-color: #2f2f2f;
     color: #f6f6f6;
   }
