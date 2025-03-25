@@ -40,12 +40,14 @@ struct DownloadProgress {
 fn get_you_get_path() -> Result<String, String> {
     let possible_paths = if cfg!(target_os = "windows") {
         vec![
+            "you-get",
             "C:\\Program Files\\you-get\\you-get.exe",
             "C:\\Users\\%USERNAME%\\AppData\\Local\\Programs\\you-get\\you-get.exe",
             "C:\\Users\\%USERNAME%\\AppData\\Roaming\\Python\\Scripts\\you-get.exe",
         ]
     } else {
         vec![
+            "you-get",
             "/usr/local/bin/you-get",       // Homebrew (Intel Mac)
             "/opt/homebrew/bin/you-get",    // Homebrew (Apple Silicon Mac)
             "~/.local/bin/you-get",         // pip install --user (Linux/macOS)
