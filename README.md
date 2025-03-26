@@ -1,6 +1,6 @@
 # You-Get UI
 
-一个基于 Tauri 和 Vue 3 的 You-Get 图形界面客户端，让视频下载更简单。
+一个基于 Tauri 和 Vue 3 的 You-Get 图形界面客户端，让视频下载更简单。此项目为 tauri2.0 学习产物，不保证持续更新。
 
 ## 功能特性
 
@@ -9,17 +9,18 @@
 - 📊 显示视频信息和可用的下载格式
 - 🔒 支持使用 cookies 文件下载需要登录的视频
   - 可以使用 Chrome 插件 [Get cookies.txt LOCALLY](https://chrome.google.com/webstore/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) 导出 cookies.txt 文件
-  - 支持 Bilibili、YouTube 等需要登录的平台
+  - 支持 Bilibili 等需要登录的平台
 - 📁 自定义下载路径
 - 🔄 实时显示下载状态
-- 🌓 支持浅色/深色主题（开发中）
 
 ## 系统要求
 
 - macOS 10.13+ / Windows 10+ / Linux
 - Node.js 16+
 - Rust 1.70+
-- Python 3.7+ (用于 you-get)
+- Python 3.7.4+ (用于 you-get)
+- FFmpeg 1.0+ (用于 you-get)
+- you-get ( [https://you-get.org/](https://you-get.org/) )
 
 ## 安装
 
@@ -78,15 +79,17 @@ yarn tauri build
 
 ## 界面预览
 
-![image-20250321083556321](./README.assets/image-20250321083556321.png)
+![image-20250326111016017](./README.assets/image-20250326111016017.png)
 
-![image-20250320172245530](./README.assets/image-20250320172245530.png)
+![image-20250326111241390](./README.assets/image-20250326111241390.png)
 
-![image-20250320173308494](./README.assets/image-20250320173308494.png)
+![image-20250326111320936](./README.assets/image-20250326111320936.png)
 
-![image-20250320171936076](./README.assets/image-20250320171936076.png)
+![image-20250326111346390](./README.assets/image-20250326111346390.png)
 
-![image-20250320172014626](./README.assets/image-20250320172014626.png)
+![image-20250326111422662](./README.assets/image-20250326111422662.png)
+
+![image-20250326111457907](./README.assets/image-20250326111457907.png)
 
 ## 许可证
 
