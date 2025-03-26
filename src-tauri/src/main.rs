@@ -19,13 +19,16 @@ struct DownloadState {
     is_downloading: bool,
 }
 
+// 格式信息结构体
 #[derive(serde::Serialize)]
 struct FormatInfo {
-    name: String,
-    size: u64,
-    quality: Option<String>,
+    format: String,       // 原始的 format 字段
+    container: String,    // 容器类型
+    size: String,         // 大小（带单位）
+    quality: Option<String>, // 质量
 }
 
+// 视频信息结构体
 #[derive(serde::Serialize)]
 struct VideoInfo {
     title: String,
@@ -294,15 +297,23 @@ fn parse_formats(output: &str) -> Vec<FormatInfo> {
         }
 
         // 匹配格式名称
-        if let Some(name) = extract_field(line, r"- format:\s+(\S+)") {
+        if let Some(format_name) = extract_field(line, r"- format:\s+(\S+)") {
             if let Some(format) = current_format.take() {
                 formats.push(format);
             }
             current_format = Some(FormatInfo {
-                name,
-                size: 0,
+                format: format_name,
+                container: "".to_string(), // 初始化为空字符串
+                size: "".to_string(),
                 quality: None,
             });
+        }
+
+        // 匹配容器类型
+        if let Some(container) = extract_field(line, r"container:\s+(\S+)") {
+            if let Some(ref mut format) = current_format {
+                format.container = container;
+            }
         }
 
         // 匹配质量
@@ -313,9 +324,9 @@ fn parse_formats(output: &str) -> Vec<FormatInfo> {
         }
 
         // 匹配大小
-        if let Some(size_str) = extract_field(line, r"size:\s+([\d.]+\s+\w+)\s+\(([\d]+)\s+bytes\)") {
+        if let Some(size_str) = extract_field(line, r"size:\s+([\d.]+\s+\w+)") {
             if let Some(ref mut format) = current_format {
-                format.size = parse_size(&size_str);
+                format.size = size_str; // 直接使用括号前的部分
             }
         }
     }
@@ -325,8 +336,13 @@ fn parse_formats(output: &str) -> Vec<FormatInfo> {
         formats.push(format);
     }
 
-    // 按文件大小降序排序
-    formats.sort_by(|a, b| b.size.cmp(&a.size));
+    // 按文件大小降序排序（需要将大小转换为字节数进行比较）
+    formats.sort_by(|a, b| {
+        let size_a = parse_size_to_bytes(&a.size);
+        let size_b = parse_size_to_bytes(&b.size);
+        size_b.cmp(&size_a)
+    });
+
     formats
 }
 
@@ -338,12 +354,19 @@ fn extract_field(line: &str, pattern: &str) -> Option<String> {
         .map(|m| m.as_str().to_string())
 }
 
-// 将大小字符串（如 "11.4 MiB (11902362 bytes)"）转换为字节数
-fn parse_size(size_str: &str) -> u64 {
-    let size_pattern = Regex::new(r"\((\d+)\s+bytes\)").unwrap();
+// 将大小字符串（如 "11.4 MiB"）转换为字节数，用于排序
+fn parse_size_to_bytes(size_str: &str) -> u64 {
+    let size_pattern = Regex::new(r"([\d.]+)\s+(\w+)").unwrap();
     if let Some(caps) = size_pattern.captures(size_str) {
-        caps.get(1)
-            .map_or(0, |m| m.as_str().parse::<u64>().unwrap_or(0))
+        let value = caps.get(1).map_or(0.0, |m| m.as_str().parse::<f64>().unwrap_or(0.0));
+        let unit = caps.get(2).map_or("", |m| m.as_str());
+
+        match unit {
+            "MiB" => (value * 1024.0 * 1024.0) as u64,
+            "KiB" => (value * 1024.0) as u64,
+            "GiB" => (value * 1024.0 * 1024.0 * 1024.0) as u64,
+            _ => 0,
+        }
     } else {
         0
     }

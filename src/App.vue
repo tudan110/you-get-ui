@@ -11,10 +11,12 @@ const downloading = ref(false);
 const status = ref("");
 const youGetInstalled = ref(false);
 const cookiesPath = ref("");
-const videoInfo = ref({
+// 定义初始值
+const initialVideoInfo = {
   title: '',
   formats: []
-});
+};
+const videoInfo = ref({ ...initialVideoInfo });
 const loadingInfo = ref(false);
 const downloadCaptions = ref(false);
 
@@ -33,28 +35,6 @@ const formatSize = (size) => {
   } else {
     return `${size} B`;
   }
-};
-
-// 格式化显示名称
-const formatDisplayName = (format, quality) => {
-  let displayName = format;
-  if (format.includes('dash-flv')) {
-    const quality = format.replace('dash-flv', '');
-    switch (quality) {
-      case '1080p60': displayName = '1080P60'; break;
-      case '1080p': displayName = '1080P'; break;
-      case '720': displayName = '720P'; break;
-      case '480': displayName = '480P'; break;
-      case '360': displayName = '360P'; break;
-    }
-  }
-
-  // 如果有质量信息，添加到显示名称中
-  if (quality) {
-    displayName = `${displayName} (${quality})`;
-  }
-
-  return displayName;
 };
 
 // 监听下载进度
@@ -108,6 +88,8 @@ async function selectCookiesFile() {
 }
 
 async function getVideoInfo() {
+  videoInfo.value = { ...initialVideoInfo };
+
   if (!url.value) {
     status.value = "请输入视频链接";
     return;
@@ -124,7 +106,7 @@ async function getVideoInfo() {
     videoInfo.value = info;
 
     if (videoInfo.value.formats.length > 0) {
-      format.value = videoInfo.value.formats[0].name;
+      format.value = videoInfo.value.formats[0].format;
       status.value = "视频信息获取成功！";
     } else {
       status.value = "未找到可用的视频格式";
@@ -246,8 +228,8 @@ onUnmounted(() => {
 
       <div v-if="videoInfo.formats.length > 0" class="input-group">
         <select v-model="format" :disabled="downloading">
-          <option v-for="f in videoInfo.formats" :key="f.name" :value="f.name">
-            {{ formatDisplayName(f.name, f.quality) }} ({{ formatSize(f.size) }})
+          <option v-for="f in videoInfo.formats" :key="f.format" :value="f.format">
+            {{ `${f.quality} (${f.container}) - ${f.size}` }}
           </option>
         </select>
         <small class="help-text">选择视频质量，需要登录才能下载高清视频</small>
@@ -280,7 +262,7 @@ onUnmounted(() => {
         <div class="progress-text">{{ status }}</div>
       </div>
 
-      <p v-else class="status">{{ status }}</p>
+      <div v-else class="status">{{ status }}</div>
     </div>
   </main>
 </template>
@@ -319,7 +301,6 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  margin-top: 2rem;
 }
 
 .input-group {
@@ -428,7 +409,6 @@ onUnmounted(() => {
 }
 
 .progress-container {
-  margin-top: 1rem;
   width: 100%;
   display: flex;
   flex-direction: column;
