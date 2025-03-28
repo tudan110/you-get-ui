@@ -87,7 +87,7 @@ yarn tauri build
 
 ![image-20250326111346390](./README.assets/image-20250326111346390.png)
 
-![image-20250326111422662](./README.assets/image-20250326111422662.png)
+![image-20250328091332510](./README.assets/image-20250328091332510.png)
 
 ![image-20250326111457907](./README.assets/image-20250326111457907.png)
 
