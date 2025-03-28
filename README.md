@@ -20,7 +20,11 @@
 - Rust 1.70+
 - Python 3.7.4+ (用于 you-get)
 - FFmpeg 1.0+ (用于 you-get)
+
+  windows 下需要设置系统环境变量
 - you-get ( [https://you-get.org/](https://you-get.org/) )
+
+  使用注意：Mac 下建议使用 homebrew 或者 pyenv 安装，windows 下需要设置系统环境变量
 
 ## 安装
 
